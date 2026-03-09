@@ -47,8 +47,8 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
   - **日常主力**：Claude Sonnet 4.6
   - **复杂规划/重构攻坚**：Claude Opus 4.6
   - **复杂工程第二视角 / agentic coding**：GPT-5.3-Codex
-  - **超大上下文**：Gemini 2.5 Pro
-  - **低成本高吞吐**：Gemini 2.5 Flash / MiniMax M2.5
+  - **超大上下文**：Gemini 3.1 Pro
+  - **低成本高吞吐**：Gemini 3.1 Flash-Lite / MiniMax M2.5
   - **中文业务与国内团队**：GLM-5-Code
 
 **辅助图建议**
@@ -124,8 +124,9 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
   - **速度基准**：Sonnet 4.6 的 TTFT 和输出速度作为比较参照
   - **能力基准**：在“日常业务开发”场景下，Sonnet 4.6 视作 **A 档基准**
 - 本文价格对比采用一个标准工作负载：
-  - **1M 输入 + 0.3M 输出**
+  - **按 1M 输入 + 0.3M 输出做归一化换算**
   - 这样比单看输入价或输出价更接近日常编码场景
+  - **注意：Gemini 3.1 Pro 官方按输入长度分档计费，文中会单独列出 <=200k 与 >200k 两档**
 
 **辅助图建议**
 - 一个“基准尺”视觉：
@@ -171,10 +172,12 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
 | Claude Sonnet 4.6 | 日常主力 | 代码质量稳、通用性强、社区认可高 | 不算便宜，不算最快 | 团队默认主力模型 |
 | Claude Opus 4.6 | 攻坚模型 | 复杂规划、重构、代理任务能力强 | 成本高 | 难题和高风险任务使用 |
 | GPT-5.3-Codex | 工程攻坚副驾 | agentic coding 强、Terminal/SWE 任务强、工程理解好 | 首字延迟高，不适合高频即时互动 | 复杂工程第二视角、长链路任务 |
-| Gemini 2.5 Pro | 大上下文模型 | 超长上下文、长文档/大仓库理解强 | 首字延迟偏高 | 大仓库分析、方案阅读 |
-| Gemini 2.5 Flash | 降本模型 | 快、便宜、吞吐高 | 高风险复杂任务不宜默认使用 | 草稿、批量任务、低风险生成 |
+| Gemini 3.1 Pro | 大上下文模型 | 超长上下文、复杂代码分析强、Google 官方 SWE-Bench Verified 等编码评测提升明显 | 首字延迟仍偏高，且官方按输入长度分档计费 | 大仓库分析、方案阅读、复杂代码理解 |
+| Gemini 3.1 Flash-Lite | 降本模型 | 成本极低、吞吐极高、适合高频和批量任务 | 更适合作为降本层，不宜做高风险复杂任务主力 | 草稿、批量任务、低风险生成 |
 | GLM-5-Code | 中文业务主力 | 中文 + 代码混合场景友好，成本合理 | 全球最佳实践沉淀少于 Claude/OpenAI | 中文需求转代码、国内团队 |
 | MiniMax M2.5 | 高性价比模型 | 极低成本、高吞吐 | 高风险复杂任务不宜主打 | 批量任务、低成本流水线 |
+
+- 说明：Google 当前公开口径中，与本次主题最相关的是 **Gemini 3.1 Pro Preview** 和 **Gemini 3.1 Flash-Lite Preview**；文中为便于阅读统一简称为 Gemini 3.1 Pro / Gemini 3.1 Flash-Lite。
 
 **辅助图建议**
 - 模型地图：
@@ -187,24 +190,26 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
 ## 第 8 页｜价格对比：以 Sonnet 4.6 = 1.00x 为基准
 
 **内容**
-- 标准工作负载：**1M 输入 + 0.3M 输出**
+- 价格采用**归一化口径**：按 `1M 输入 + 0.3M 输出` 换算，便于跨模型比较
 - 计算方式：`综合成本 = 输入单价 + 0.3 * 输出单价`
-- 这个口径比单看输入价更接近日常编码任务
+- **Gemini 3.1 Pro 官方按输入长度分档计费**，因此单独列出两档
 
 | 模型 | 输入价 | 输出价 | 标准任务综合成本 | 相对 Sonnet 4.6 |
 |---|---:|---:|---:|---:|
 | Claude Sonnet 4.6 | 3.00 | 15.00 | 7.50 | 1.00x |
 | Claude Opus 4.6 | 5.00 | 25.00 | 12.50 | 1.67x |
 | GPT-5.3-Codex | 1.75 | 14.00 | 5.95 | 0.79x |
-| Gemini 2.5 Pro | 1.25 | 10.00 | 4.25 | 0.57x |
-| Gemini 2.5 Flash | 0.30 | 2.50 | 1.05 | 0.14x |
+| Gemini 3.1 Pro | 2.00 / 4.00* | 12.00 / 18.00* | 5.60 / 9.40* | 0.75x / 1.25x* |
+| Gemini 3.1 Flash-Lite | 0.25 | 1.50 | 0.70 | 0.09x |
 | GLM-5-Code | 1.20 | 5.00 | 2.70 | 0.36x |
 | MiniMax M2.5 | 0.15 | 1.20 | 0.51 | 0.07x |
 
 - 关键结论：
   - **Opus 4.6 明显更贵，不适合默认全员常开**
   - **GPT-5.3-Codex 在价格上仍低于 Sonnet，但定位更偏复杂工程任务**
-  - **Gemini Flash / MiniMax M2.5 / GLM-5-Code 在降本上非常明显**
+  - **Gemini 3.1 Flash-Lite / MiniMax M2.5 / GLM-5-Code 在降本上非常明显**
+  - **Gemini 3.1 Pro 在 <=200k 输入时性价比不错，但 >200k 输入时成本会明显上浮**
+  - `*` Gemini 3.1 Pro 官方价格：前者为 <=200k 输入档，后者为 >200k 输入档
 
 **辅助图建议**
 - 横向条形图：
@@ -227,17 +232,18 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
 | Claude Sonnet 4.6 | 0.98s | 1.00x | 42.7 tok/s | 1.00x |
 | Claude Opus 4.6 | 1.2-1.9s | 1.2x-1.9x 更慢 | 40-42 tok/s | 0.94x-0.98x |
 | GPT-5.3-Codex | 91.77s | 93.6x 更慢 | 62.7 tok/s | 1.47x |
-| Gemini 2.5 Pro | 22-26s | 22x+ 更慢 | 116-133 tok/s | 2.7x-3.1x |
-| Gemini 2.5 Flash | 0.52-0.53s | 0.53x 更快 | 195-222 tok/s | 4.6x-5.2x |
+| Gemini 3.1 Pro | 17.06s** | 17.4x 更慢 | 118.6 tok/s | 2.78x |
+| Gemini 3.1 Flash-Lite | 5.18s** | 5.29x 更慢 | 388.8 tok/s | 9.11x |
 | GLM-5 | 0.79-1.39s | 0.8x-1.4x | 93-188 tok/s | 2.2x-4.4x |
 | MiniMax M2.5 | 0.43-3.26s | 波动大 | 49-397 tok/s | 波动大 |
 
 - 关键结论：
   - **GPT-5.3-Codex 的问题不在持续输出速度，而在首字延迟很高**
   - **它更适合长链路工程任务，不适合拿来做日常高频即时问答**
-  - **Gemini Flash 非常适合高频交互与低成本批量任务**
-  - **Gemini Pro 的价值在大上下文，不在日常交互爽感**
+  - **Gemini 3.1 Flash-Lite 非常适合高吞吐批量任务，但首字延迟并不算最低**
+  - **Gemini 3.1 Pro 的价值主要在超长上下文和复杂代码分析，不在日常交互爽感**
   - **GLM / MiniMax 速度很大程度取决于接入 provider**
+  - `**` 这里优先采用 Artificial Analysis 的公开口径；Gemini 3.1 Pro 使用 Google AI Studio 路径，Flash-Lite 使用公开预览口径
 
 **辅助图建议**
 - 双图并排：
@@ -261,8 +267,8 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
 | Claude Sonnet 4.6 | A（基准） | A | A | A- | C+ |
 | Claude Opus 4.6 | A | A+ | A | B+ | C |
 | GPT-5.3-Codex | A- | A+ | A- | B | B- |
-| Gemini 2.5 Pro | B+ | B+ | A+ | B | B+ |
-| Gemini 2.5 Flash | B | C+ | B | B | A+ |
+| Gemini 3.1 Pro | A- | A- | A+ | B | B |
+| Gemini 3.1 Flash-Lite | B | C+ | B | B | A+ |
 | GLM-5-Code | A- | B+ | A- | A+ | A |
 | MiniMax M2.5 | B | C | B | A- | A+ |
 
@@ -270,9 +276,9 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
   - **Sonnet 4.6 最适合做“日常主力”**
   - **Opus 4.6 最适合做“困难题”**
   - **GPT-5.3-Codex 适合复杂工程第二视角和 agentic coding**
-  - **Gemini Pro 适合“先读透”，不一定适合“每轮都用”**
+  - **Gemini 3.1 Pro 更适合“先读透、再落地”，不是默认日常主力**
   - **GLM-5-Code 在中文业务开发里很值得重点看**
-  - **MiniMax / Flash 最适合承担降本层**
+  - **MiniMax / Gemini 3.1 Flash-Lite 最适合承担降本层**
 
 **辅助图建议**
 - 热力图：
@@ -292,7 +298,7 @@ AI 辅助程序员日常工作提效：工具与模型选型建议
 - 更合理的策略是三层路由：
   - **第一层：低成本快响应**
     - 用于草稿、批量生成、低风险任务
-    - 推荐：Gemini Flash / MiniMax M2.5
+    - 推荐：Gemini 3.1 Flash-Lite / MiniMax M2.5
   - **第二层：日常主力**
     - 用于 feature、bugfix、测试、review
     - 推荐：Sonnet 4.6 / GLM-5-Code
@@ -391,7 +397,7 @@ Cursor 在开发过程里具体帮了我什么
 - **工作台**：Cursor Pro / Pro+
 - **主力模型**：Claude Sonnet 4.6
 - **补充模型**：GPT-5.3-Codex（按需）
-- **降本模型**：Gemini 2.5 Flash
+- **降本模型**：Gemini 3.1 Flash-Lite
 
 **适用场景**
 - 常规 Web / 中后台 / 企业应用开发
@@ -403,7 +409,7 @@ Cursor 在开发过程里具体帮了我什么
 - Cursor 负责 IDE 内高频协作体验
 - Sonnet 4.6 做日常主力，质量最稳
 - GPT-5.3-Codex 负责复杂工程第二视角、难题求解、长链路任务补位
-- Flash 负责草稿、批量低风险任务，控制成本
+- Gemini 3.1 Flash-Lite 负责草稿、批量低风险任务，控制成本
 
 **优点**
 - 综合最均衡
@@ -419,7 +425,7 @@ Cursor 在开发过程里具体帮了我什么
   - Cursor 在最上层
   - Sonnet 为主通道
   - GPT-5.3-Codex 为复杂工程补位通道
-  - Flash 为降本通道
+  - Gemini 3.1 Flash-Lite 为降本通道
 
 ---
 
@@ -468,7 +474,7 @@ Cursor 在开发过程里具体帮了我什么
 
 ### 方案 C：性价比优先
 - **工作台**：Trae
-- **主力模型**：Gemini 2.5 Flash / MiniMax M2.5
+- **主力模型**：Gemini 3.1 Flash-Lite / MiniMax M2.5
 - **升阶模型**：GLM-5-Code 或 Sonnet 4.6
 
 **适合**
@@ -508,7 +514,7 @@ Cursor 在开发过程里具体帮了我什么
 - **模型策略**：自带 API key 或本地模型
 - **推荐组合**：
   - 日常主力：Sonnet 4.6 / GLM-5-Code
-  - 降本批量：Gemini Flash / MiniMax M2.5
+  - 降本批量：Gemini 3.1 Flash-Lite / MiniMax M2.5
   - 本地隐私场景：Ollama 等本地模型
 
 **适合**
@@ -540,9 +546,9 @@ Cursor 在开发过程里具体帮了我什么
 
 | 方案 | 组合 | 固定成本压力 | 复杂任务上限 | 日常体验 | 降本能力 | 管理难度 | 推荐对象 |
 |---|---|---|---|---|---|---|---|
-| A 标准企业默认方案 | Cursor + Sonnet 4.6 + GPT-5.3-Codex（按需） + Gemini Flash | 中 | 高 | 高 | 中高 | 中 | 大多数业务研发团队 |
+| A 标准企业默认方案 | Cursor + Sonnet 4.6 + GPT-5.3-Codex（按需） + Gemini 3.1 Flash-Lite | 中 | 高 | 高 | 中高 | 中 | 大多数业务研发团队 |
 | B 质量上限方案 | Cursor + Claude Code + Opus 4.6 + Sonnet 4.6 + GPT-5.3-Codex | 高 | 很高 | 高 | 中 | 高 | 核心研发、平台、复杂改造团队 |
-| C 性价比方案 | Trae + Gemini Flash / MiniMax M2.5 + GLM-5-Code 或 Sonnet | 低 | 中 | 中 | 很高 | 中 | 创业团队、预算敏感团队、试点团队 |
+| C 性价比方案 | Trae + Gemini 3.1 Flash-Lite / MiniMax M2.5 + GLM-5-Code 或 Sonnet | 低 | 中 | 中 | 很高 | 中 | 创业团队、预算敏感团队、试点团队 |
 | D 国内企业治理方案 | CodeBuddy + 企业内置/自定义模型 + 高风险模型兜底 | 低到中 | 中高 | 中高 | 中高 | 中 | 国内企业、强合规、知识库驱动团队 |
 | E 开源自控方案 | OpenCode + 自带模型/API + 本地模型按需混搭 | 低到中 | 高 | 中 | 高 | 高 | 平台团队、隐私敏感团队、开源偏好团队 |
 
@@ -579,7 +585,7 @@ Cursor 在开发过程里具体帮了我什么
 
 ### 第 2 阶段：加入路由
 - 把任务按难度分层：
-  - 低风险：Flash / MiniMax
+  - 低风险：Gemini 3.1 Flash-Lite / MiniMax
   - 日常主力：Sonnet / GLM
   - 高风险：Opus / Claude Code / GPT-5.3-Codex
 - 建立内部最佳实践：
@@ -616,7 +622,7 @@ Cursor 在开发过程里具体帮了我什么
   - 腾讯云 CodeBuddy 官方 pricing / docs
   - OpenCode 官方 docs
   - OpenAI 官方 GPT-5.3-Codex docs
-  - Google 官方 Gemini pricing docs
+  - Google 官方 Gemini API / Vertex AI / DeepMind model pages
   - Z.AI 官方 GLM-5 / GLM-5-Code docs
   - MiniMax 官方 pricing docs
   - Artificial Analysis / LiveCodeBench 等第三方 benchmark
