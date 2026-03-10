@@ -162,7 +162,7 @@
 | Claude Code / Claude Team | 个人 $20 起；团队 seat 分层；重度更贵 | 中：即时聊天体感不如 IDE 快，但长任务闭环能力强 | 长链路 agentic coding、accepted lines/PR/commit 分析强 | 攻坚、平台团队、需要 ROI 的组织 | 复杂任务强、治理强、贡献指标强 | 成本高于试点工具；需要接受 agent 工作方式 |
 | Trae | Free / Pro 低价 | 中高：上手快，试错快 | 适合快速试用和低成本起步 | 个人试点、小团队尝鲜 | 门槛低、便宜 | 团队 seat / 管理 / 归因公开证据不足 |
 | CodeBuddy | 个人 $9.95/月；团队 78/158 元每人每月 | 国内网络与本地落地友好；体感偏好取决于模型/场景 | 国内团队治理、知识库、SSO、成员上限控制强 | 国内企业、合规组织、知识库驱动研发 | seat 便宜、组织落地强、管理清晰 | credits 映射不透明；精细代码归因公开证据弱 |
-| OpenCode | 工具 OSS 免费；企业定制 | 取决于 provider / 本地模型 / AI gateway；可很快也可一般 | 最强的自控与定制能力 | 平台团队、隐私敏感、自建 AI 中台 | 开源、灵活、可接 75+ providers、本地模型友好 | 需要自建治理和观测；对普通团队不够省心 |
+| OpenCode | 工具 OSS 免费；企业定制 | 取决于 provider / AI gateway；可很快也可一般 | 最强的自控与定制能力 | 平台团队、隐私敏感、自建 AI 中台 | 开源、灵活、可接 75+ providers | 需要自建治理和观测；对普通团队不够省心 |
 
 ### 4.2 分工具详细优缺点
 
@@ -291,26 +291,289 @@
 
 **速度 / 体感**
 - 取决于你接的 provider 和内部网关
-- 用本地模型时可极快；也可能因自建链路变慢
+- 也可能因自建链路设计不同而明显变快或变慢
 
 **能力**
 - 75+ provider
-- 本地模型
 - internal AI gateway
 - centralized config / SSO / permissions
 
 **适用场景**
 - 平台团队
 - 自控组织
-- 本地模型 / 自建 AI 网关团队
+- 自建 AI 网关团队
 
 **优点**
 - 自由度最高
 - 最适合长期自控
+- 本文最终推荐方案中，OpenCode 默认按**云模型路线**使用，不依赖本地模型
 
 **缺点**
 - 没有商业工具那样的开箱即用治理
 - 需要平台能力
+
+---
+
+### 4.3 各工具团队模式详细分层对比
+
+> 说明：  
+> 本节只比较 **团队模式 / 企业模式**。  
+> 如果某工具官方没有公开足够细的团队分层、seat 或额度规则，会明确写“**公开证据不足**”，不做推断。
+
+#### 4.3.1 团队模式总表
+
+| 工具 | 团队层级 | 价格 | 用量/额度 | 主要功能 | 适合谁 | 备注 |
+|---|---|---|---|---|---|---|
+| Cursor | Teams | **$40/人/月** | 每 seat 含 **$20/月 usage**；按用户跟踪 spending | 集中计费、SSO、Admin Dashboard、usage stats、Privacy Mode | 大多数研发团队 | 默认团队版 |
+| Cursor | Enterprise | 定制 | 支持 pooled usage | SCIM、RBAC、审计、Admin API、Analytics API、AI Code Tracking API、Cursor Blame、Service Accounts | 中大型组织、强治理团队 | 代码归因能力最强之一 |
+| Claude | Team Standard Seat | 官方 Team 为 seat-based；Standard 公开口径约 **$20/月年付或$25/月付** | 每 5 小时重置；公开为“高于 Pro 的用量” | Claude Team 协作、Claude Code、基础团队治理 | 中小团队、常规使用者 | 更偏普及 seat |
+| Claude | Team Premium Seat | 官方公开口径约 **$100/月年付或$125/月付** | **225 messages/5h**；约 **50–95h Sonnet/周** | 更高 seat 配额、Claude Code 重度使用、团队 analytics | 研发骨干、重度成员 | 团队治理与指标优先 |
+| Claude | Enterprise | 定制 | per-member usage；可 extra usage | SSO、RBAC、管理台、GitHub analytics、Claude Code analytics/API、Enterprise 安全能力 | 中大型企业 | 团队效能量化能力最强之一 |
+| CodeBuddy | 旗舰版 | **78 元/人/月**，3 人起 | **2000 credits/人/月，团队共享** | SSO、企业知识库、模型配置、成员统计、研效看板、成员月上限控制 | 国内企业、中小团队 | 性价比与治理平衡较好 |
+| CodeBuddy | 专享版 | **158 元/人/月**，10 人起 | **2000 credits/人/月，团队共享** | 旗舰版全部功能 + 专属网络访问 + 企业插件 | 更强合规、隔离要求高的团队 | 更偏专属部署体验 |
+| CodeBuddy | 企业版 | 需咨询 | 需咨询 | 私有化 / 自有 GPU / 更高定制能力 | 强监管、超大企业 | 不公开固定价格 |
+| OpenCode | OSS 团队自管 | OSS 免费 | 无内置额度；模型成本完全外置 | 配置自由、可统一内部网关、可自建权限与日志链路 | 平台团队、小规模自管团队 | 不是官方商业 team plan |
+| OpenCode | Enterprise | 定制 seat | 若自有 LLM gateway，OpenCode 侧可无 token fee | centralized config、SSO、private AI gateway、permissions | 平台化与自控型组织 | 适合已有 AI 中台团队 |
+| Trae | Pro / billing 路线 | 官方可见 free / pro，但**团队层级细则公开不足** | 请求制 / billing 制，公开团队口径不足 | 有 dashboard / billing 相关页面 | 试点团队 | 不建议作为严肃团队治理基线 |
+
+#### 4.3.2 Cursor 团队模式详细介绍
+
+##### Cursor Teams
+
+**价格**
+- **$40 / 人 / 月**
+
+**用量**
+- 每个 seat 含 **$20 / 月 usage**
+- 可继续开启 on-demand usage
+- spending 按成员追踪
+
+**功能**
+- centralized billing
+- SSO
+- Admin Dashboard
+- usage stats
+- Privacy Mode
+
+**优点**
+- 团队默认工作台很容易推广
+- seat 逻辑和 included usage 比较清晰
+
+**限制**
+- 如果你要看 commit 级 AI 代码生成占比，Teams 不如 Enterprise 完整
+
+##### Cursor Enterprise
+
+**价格**
+- 定制
+
+**用量**
+- 支持 **pooled usage**
+- 有更强的分组和 spend 管理能力
+
+**功能**
+- SCIM
+- RBAC
+- 审计日志
+- Admin API
+- Analytics API
+- AI Code Tracking API
+- Cursor Blame
+- Service Accounts
+
+**优点**
+- 适合真正做团队级代码归因、预算和安全治理
+
+**适用场景**
+- 中大型组织
+- 要量化 AI 代码贡献占比的团队
+
+#### 4.3.3 Claude 团队模式详细介绍
+
+##### Team Standard Seat
+
+**价格**
+- 官方帮助中心公开 seat-based 口径约：
+  - **$20 / 人 / 月（年付折算）**
+  - **$25 / 人 / 月（月付口径）**
+
+**用量**
+- 官方说明：**高于 Pro**
+- session limits 每 5 小时重置
+
+**功能**
+- 团队协作
+- Claude Code 可用
+- 基础团队治理
+
+**优点**
+- 比 Premium 更适合普及到更多成员
+
+**限制**
+- 不适合特别重度的 Claude Code 使用者
+
+##### Team Premium Seat
+
+**价格**
+- 官方帮助中心公开 seat-based 口径约：
+  - **$100 / 人 / 月（年付折算）**
+  - **$125 / 人 / 月（月付口径）**
+
+**用量**
+- **225 messages / 5h**
+- **50–95 小时 Sonnet / 周**（官方公开量级）
+
+**功能**
+- 适合 Claude Code 重度使用
+- 团队 analytics
+- 更适合高频研发成员
+
+**优点**
+- 对高使用强度成员更合适
+- 很适合作为核心研发 seat
+
+##### Enterprise
+
+**价格**
+- 定制
+
+**用量**
+- per-member usage
+- 可 request extra usage / extra usage 管理
+
+**功能**
+- SSO / 安全能力
+- GitHub contribution metrics
+- Claude Code analytics dashboard
+- Claude Code Analytics API
+
+**优点**
+- 最适合效能分析、accepted lines、commit / PR 贡献跟踪
+
+#### 4.3.4 CodeBuddy 团队模式详细介绍
+
+##### 旗舰版
+
+**价格**
+- **78 元 / 人 / 月**
+- **3 人起购**
+
+**用量**
+- **2000 credits / 人 / 月**
+- credits **团队共享**
+- 管理员可设置成员单月最大用量
+
+**功能**
+- 企业知识库
+- SSO
+- 研效看板
+- 成员统计
+- 模型配置
+- 权限管理
+
+**优点**
+- 国内企业治理与成本平衡较好
+
+##### 专享版
+
+**价格**
+- **158 元 / 人 / 月**
+- **10 人起购**
+
+**用量**
+- **2000 credits / 人 / 月**
+- credits **团队共享**
+
+**功能**
+- 包含旗舰版能力
+- 专属网络访问
+- 企业插件
+
+**优点**
+- 更适合隔离与网络合规要求高的团队
+
+##### 企业版
+
+**价格**
+- 需咨询
+
+**用量**
+- 需咨询
+
+**功能**
+- 更强定制能力
+- 可私有化 / 自有 GPU / 更强组织集成
+
+**优点**
+- 更适合强监管行业和大型组织
+
+#### 4.3.5 OpenCode 团队模式详细介绍
+
+##### OSS 团队自管模式
+
+**价格**
+- 工具本身 **免费**
+
+**用量**
+- 无内置额度
+- 模型成本完全外置
+
+**功能**
+- 团队可以统一：
+  - provider
+  - 配置
+  - 网关
+  - 日志策略
+
+**优点**
+- 最灵活
+- 适合小规模平台自管
+
+**限制**
+- 不是官方意义上的“商业团队计划”
+
+##### Enterprise
+
+**价格**
+- 定制 seat
+
+**用量**
+- 如果有自有 LLM gateway，OpenCode 侧可无 token fee
+
+**功能**
+- centralized config
+- SSO
+- private AI gateway
+- permissions
+
+**优点**
+- 最适合内部 AI 网关和统一模型治理
+
+#### 4.3.6 Trae 团队模式详细介绍
+
+##### 公开可确认的信息
+
+**价格**
+- 官方有 Free / Pro / billing 页面
+
+**用量**
+- 官方可确认存在 requests / billing 路线
+
+**功能**
+- 官方可确认存在 dashboard / billing 文档页
+
+##### 本次不做硬结论的原因
+
+当前公开证据不足以严谨确认：
+- 团队 seat 层级
+- 成员级上限控制
+- 团队共享额度规则
+- 团队 analytics 粒度
+- 代码归因能力
+
+**结论**
+- 可以做试点
+- 不建议作为团队治理主基线
 
 ---
 
