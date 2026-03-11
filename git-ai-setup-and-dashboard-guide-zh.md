@@ -1,4 +1,4 @@
-# git-ai 落地技术文档（安装插件 / 部署服务 / 搭建看板）
+# git-ai 落地技术文档（MySQL 版：安装插件 / 部署服务 / 搭建看板）
 
 ## 1. 文档目标
 
@@ -21,7 +21,7 @@
    安装 git-ai GitHub CI workflow，处理合并后归因维护
 
 3. **数据与看板层（自建）**  
-   采集脚本（collector）+ PostgreSQL + Metabase/Grafana
+   采集脚本（collector）+ MySQL + Metabase/Grafana
 
 ### 2.2 为什么这么分层
 
@@ -90,10 +90,10 @@ git-ai ci github install
 
 ## 5. 数据服务化：采集、入库、调度
 
-## 5.1 推荐最小可用架构
+## 5.1 推荐最小可用架构（MySQL）
 
 - **采集任务**：Cron / GitHub Actions / Jenkins 定时运行
-- **指标库**：PostgreSQL
+- **指标库**：MySQL 8.0+
 - **可视化**：Metabase（免费）或 Grafana
 
 ## 5.2 采集逻辑（建议）
@@ -121,46 +121,125 @@ git-ai diff <commit_sha> --json --include-stats
 
 字段建议：
 
-- `repo` (text)
-- `commit_sha` (text, unique)
-- `authored_at` (timestamp)
-- `author_email` (text)
+- `repo` (varchar(255))
+- `commit_sha` (char(40), unique)
+- `authored_at` (datetime)
+- `author_email` (varchar(255))
 - `ai_lines_added` (int)
 - `human_lines_added` (int)
 - `unknown_lines_added` (int)
 - `git_lines_added` (int)
 - `git_lines_deleted` (int)
-- `tool` (text)
-- `model` (text)
+- `tool` (varchar(64))
+- `model` (varchar(128))
 - `ai_lines_generated` (int)
 - `ai_deletions_generated` (int)
-- `ingested_at` (timestamp default now)
+- `ingested_at` (timestamp default current_timestamp)
 
 > 实操中可将 `tool_model_breakdown` 拆表存储，便于画模型对比图。
 
+## 5.4 MySQL 建表 SQL（可直接执行）
+
+```sql
+CREATE DATABASE IF NOT EXISTS ai_metrics
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+
+USE ai_metrics;
+
+CREATE TABLE IF NOT EXISTS ai_commit_stats (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  repo VARCHAR(255) NOT NULL,
+  commit_sha CHAR(40) NOT NULL,
+  authored_at DATETIME NOT NULL,
+  author_email VARCHAR(255) NOT NULL,
+  ai_lines_added INT NOT NULL DEFAULT 0,
+  human_lines_added INT NOT NULL DEFAULT 0,
+  unknown_lines_added INT NOT NULL DEFAULT 0,
+  git_lines_added INT NOT NULL DEFAULT 0,
+  git_lines_deleted INT NOT NULL DEFAULT 0,
+  tool VARCHAR(64) NOT NULL DEFAULT 'unknown',
+  model VARCHAR(128) NOT NULL DEFAULT 'unknown',
+  ai_lines_generated INT NOT NULL DEFAULT 0,
+  ai_deletions_generated INT NOT NULL DEFAULT 0,
+  ingested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_repo_commit_tool_model (repo, commit_sha, tool, model),
+  KEY idx_authored_at (authored_at),
+  KEY idx_author_email (author_email),
+  KEY idx_repo_authored_at (repo, authored_at),
+  KEY idx_tool_model (tool, model)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+```
+
+## 5.5 采集入库 UPSERT（MySQL）
+
+建议采集脚本按 commit+tool+model 做幂等写入：
+
+```sql
+INSERT INTO ai_commit_stats (
+  repo, commit_sha, authored_at, author_email,
+  ai_lines_added, human_lines_added, unknown_lines_added,
+  git_lines_added, git_lines_deleted,
+  tool, model, ai_lines_generated, ai_deletions_generated
+) VALUES (
+  ?, ?, ?, ?,
+  ?, ?, ?,
+  ?, ?,
+  ?, ?, ?, ?
+)
+ON DUPLICATE KEY UPDATE
+  authored_at = VALUES(authored_at),
+  author_email = VALUES(author_email),
+  ai_lines_added = VALUES(ai_lines_added),
+  human_lines_added = VALUES(human_lines_added),
+  unknown_lines_added = VALUES(unknown_lines_added),
+  git_lines_added = VALUES(git_lines_added),
+  git_lines_deleted = VALUES(git_lines_deleted),
+  ai_lines_generated = VALUES(ai_lines_generated),
+  ai_deletions_generated = VALUES(ai_deletions_generated),
+  ingested_at = CURRENT_TIMESTAMP;
+```
+
 ---
 
-## 6. 看板搭建（Metabase 示例）
+## 6. 看板搭建（Metabase + MySQL 示例）
 
-## 6.1 启动 Metabase + PostgreSQL（Docker）
+## 6.1 启动 Metabase + MySQL（Docker）
 
 ```yaml
+version: "3.9"
+
 services:
-  postgres:
-    image: postgres:16
+  mysql:
+    image: mysql:8.4
+    command: --default-authentication-plugin=mysql_native_password
     environment:
-      POSTGRES_USER: ai
-      POSTGRES_PASSWORD: ai123
-      POSTGRES_DB: ai_metrics
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: ai_metrics
+      MYSQL_USER: ai
+      MYSQL_PASSWORD: ai123
+      TZ: Asia/Shanghai
     ports:
-      - "5432:5432"
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - mysql_data:/var/lib/mysql
 
   metabase:
     image: metabase/metabase:latest
     depends_on:
-      - postgres
+      mysql:
+        condition: service_healthy
     ports:
       - "3000:3000"
+
+volumes:
+  mysql_data:
 ```
 
 启动：
@@ -169,7 +248,7 @@ services:
 docker compose up -d
 ```
 
-访问 `http://<server>:3000`，连接 PostgreSQL 后创建问题（Question）与仪表盘（Dashboard）。
+访问 `http://<server>:3000`，选择 MySQL 数据源（host 填 `mysql` 或服务器地址，端口 `3306`）后创建问题（Question）与仪表盘（Dashboard）。
 
 ## 6.2 核心指标 SQL（可直接使用）
 
@@ -182,9 +261,9 @@ SELECT
   SUM(git_lines_added) AS total_lines,
   ROUND(100.0 * SUM(ai_lines_added) / NULLIF(SUM(git_lines_added), 0), 2) AS ai_pct
 FROM ai_commit_stats
-WHERE authored_at >= now() - interval '30 days'
-GROUP BY 1
-ORDER BY 1;
+WHERE authored_at >= NOW() - INTERVAL 30 DAY
+GROUP BY day
+ORDER BY day;
 ```
 
 ### 2）成员维度 AI 占比
@@ -196,8 +275,8 @@ SELECT
   SUM(git_lines_added) AS total_lines,
   ROUND(100.0 * SUM(ai_lines_added) / NULLIF(SUM(git_lines_added), 0), 2) AS ai_pct
 FROM ai_commit_stats
-WHERE authored_at >= now() - interval '30 days'
-GROUP BY 1
+WHERE authored_at >= NOW() - INTERVAL 30 DAY
+GROUP BY author_email
 ORDER BY ai_pct DESC;
 ```
 
@@ -208,8 +287,8 @@ SELECT
   repo,
   ROUND(100.0 * SUM(ai_lines_added) / NULLIF(SUM(git_lines_added), 0), 2) AS ai_pct
 FROM ai_commit_stats
-WHERE authored_at >= now() - interval '30 days'
-GROUP BY 1
+WHERE authored_at >= NOW() - INTERVAL 30 DAY
+GROUP BY repo
 ORDER BY ai_pct DESC;
 ```
 
@@ -221,10 +300,26 @@ SELECT
   model,
   SUM(ai_lines_added) AS ai_lines
 FROM ai_commit_stats
-WHERE authored_at >= now() - interval '30 days'
-GROUP BY 1,2
+WHERE authored_at >= NOW() - INTERVAL 30 DAY
+GROUP BY tool, model
 ORDER BY ai_lines DESC;
 ```
+
+## 6.3 推荐看板布局（优化版）
+
+建议首页按“总览 + 诊断”两层展示：
+
+1. **总览区**
+   - 最近 30 天 AI 新增占比（折线）
+   - 本周 AI 行数 / 总新增行（指标卡）
+   - Top 仓库 AI 占比（条形图）
+
+2. **诊断区**
+   - 成员维度 AI 占比分布（条形图）
+   - 工具/模型贡献趋势（堆叠图）
+   - 异常仓库（AI 占比突增）告警表
+
+> 告警建议：当某仓库周环比增幅 > 30% 且总新增行 > 阈值时标红。
 
 ---
 
@@ -257,6 +352,9 @@ ORDER BY ai_lines DESC;
 
 4. **关注隐私与合规**  
    若要保存 prompts/transcript，需遵循内部数据治理要求。
+
+5. **MySQL 运维建议（生产）**  
+   建议开启 binlog、定期备份（全量+增量），并对 `ai_commit_stats` 做月度归档或分区策略。
 
 ---
 
