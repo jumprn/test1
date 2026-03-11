@@ -383,7 +383,53 @@ git-ai git-hooks ensure
 
 ---
 
-## 10. 实施里程碑（建议）
+## 10. git-ai 本地防冲突脚本（新增）
+
+为降低本地开发中的分支冲突、notes 分叉、hooks 失效风险，建议在仓库中统一使用以下脚本：
+
+- `scripts/git-ai-safety/git-ai-preflight.sh`
+- `scripts/git-ai-safety/git-ai-sync-notes.sh`
+- `scripts/git-ai-safety/git-ai-safe-pull.sh`
+- `scripts/git-ai-safety/git-ai-safe-rebase.sh`
+- `scripts/git-ai-safety/git-ai-safe-push.sh`
+
+### 10.1 一次性初始化
+
+```bash
+chmod +x scripts/git-ai-safety/*.sh
+```
+
+### 10.2 推荐日常流程
+
+```bash
+# 1) 拉取前预检
+scripts/git-ai-safety/git-ai-preflight.sh origin
+
+# 2) 安全 pull（rebase 模式）
+scripts/git-ai-safety/git-ai-safe-pull.sh origin main
+
+# 3) 开发与提交（正常 git add/commit）
+
+# 4) 需要对齐主干时，使用安全 rebase
+scripts/git-ai-safety/git-ai-safe-rebase.sh origin/main origin
+
+# 5) 推送代码 + AI notes
+scripts/git-ai-safety/git-ai-safe-push.sh origin
+```
+
+### 10.3 脚本能力说明
+
+- `preflight`：检查未完成 rebase/merge、索引冲突、hooks 状态，并尝试同步远端信息
+- `sync-notes`：同步 `refs/notes/ai`；若检测到分叉会保留远端临时 ref，避免直接覆盖
+- `safe-pull`：仅在工作区干净时执行，默认 `pull --rebase --autostash`
+- `safe-rebase`：rebase 前自动创建备份分支，冲突时可快速回滚
+- `safe-push`：先推代码分支，再推 `refs/notes/ai`，保证归因链尽量同步
+
+> 说明：脚本采用“保守策略”（遇到风险先阻断），优先保证归因数据不被误覆盖。
+
+---
+
+## 11. 实施里程碑（建议）
 
 - **第 1 周**：开发者安装 + 2 仓库接入 + 基础采集入库  
 - **第 2 周**：看板上线 + 指标复核 + 误差评估  
@@ -391,7 +437,7 @@ git-ai git-hooks ensure
 
 ---
 
-## 11. 参考链接
+## 12. 参考链接
 
 - git-ai GitHub：`https://github.com/git-ai-project/git-ai`
 - git-ai Docs：`https://usegitai.com/docs/cli`
