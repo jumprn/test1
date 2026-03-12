@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor AI 编程最佳实践分享</title>
+  <style>
+    :root {
+      --bg: #ececec;
+      --panel: rgba(255, 255, 255, 0.94);
+      --panel-2: rgba(247, 249, 252, 0.98);
+      --text: #213555;
+      --muted: #5f6f81;
+      --accent: #224fa0;
+      --accent-2: #d92d7f;
+      --danger: #d64747;
+      --warning: #f29536;
+      --shadow: 0 12px 30px rgba(33, 53, 85, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #ececec url("cursor-ai-brand-background.png") center/cover no-repeat fixed;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 54px 72px 72px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 24px;
+      background: transparent;
+      opacity: 0;
+      transform: translateX(60px);
+      transition: opacity 280ms ease, transform 280ms ease;
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .topbar,
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.04em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: rgba(235, 242, 252, 0.95);
+      border: 1px solid rgba(34, 79, 160, 0.26);
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .content {
+      display: grid;
+      gap: 20px;
+      align-content: start;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.15;
+    }
+
+    h1 {
+      font-size: 42px;
+    }
+
+    h2 {
+      font-size: 34px;
+    }
+
+    h3 {
+      font-size: 22px;
+      color: var(--accent);
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1.55;
+    }
+
+    ul,
+    ol {
+      margin: 0;
+      padding-left: 28px;
+    }
+
+    .hero {
+      grid-template-columns: 1.2fr 0.8fr;
+      align-items: center;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card,
+    .quote,
+    .metric,
+    .timeline-step {
+      background: var(--panel);
+      border: 1px solid rgba(216, 222, 231, 0.95);
+      border-radius: 22px;
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h3,
+    .metric strong,
+    .timeline-step strong {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .card p,
+    .metric p,
+    .timeline-step p {
+      font-size: 19px;
+      margin: 0;
+    }
+
+    .title-block {
+      display: grid;
+      gap: 16px;
+    }
+
+    .subtitle {
+      font-size: 24px;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    .lead {
+      font-size: 24px;
+      max-width: 900px;
+    }
+
+    .big-number {
+      font-size: 76px;
+      line-height: 1;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pill {
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(214, 71, 71, 0.2);
+      color: var(--text);
+      font-size: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .quote {
+      font-size: 30px;
+      line-height: 1.45;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 252, 0.96));
+      border-left: 8px solid rgba(242, 149, 54, 0.9);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .timeline-step {
+      position: relative;
+      background: var(--panel-2);
+    }
+
+    .timeline-step::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -14px;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-size: 28px;
+    }
+
+    .timeline-step:last-child::after {
+      display: none;
+    }
+
+    .checklist li::marker {
+      color: var(--accent-2);
+    }
+
+    .danger li::marker {
+      color: var(--danger);
+    }
+
+    .warning {
+      color: var(--warning);
+    }
+
+    .prompt-box {
+      white-space: pre-wrap;
+      font-family: "Courier New", monospace;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--text);
+      background: rgba(247, 249, 252, 0.98);
+      border: 1px solid rgba(216, 222, 231, 0.95);
+      border-radius: 20px;
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .table-like {
+      display: grid;
+      gap: 12px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr 1.2fr;
+      gap: 12px;
+    }
+
+    .cell {
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: var(--panel);
+      border: 1px solid rgba(216, 222, 231, 0.95);
+      font-size: 18px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .cell.head {
+      background: rgba(235, 242, 252, 0.98);
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    .footer strong {
+      color: var(--text);
+    }
+
+    .progress {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 220ms ease;
+      width: 0;
+      z-index: 10;
+    }
+
+    .nav-hint {
+      font-size: 13px;
+      opacity: 0.85;
+    }
+
+    @media print {
+      body {
+        overflow: visible;
+        background: #ececec url("cursor-ai-brand-background.png") center/cover no-repeat fixed;
+      }
+
+      .deck {
+        height: auto;
+      }
+
+      .slide {
+        position: relative;
+        min-height: 100vh;
+        opacity: 1 !important;
+        transform: none !important;
+        page-break-after: always;
+        pointer-events: auto;
+      }
+
+      .progress {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <section class="slide active">
+      <div class="topbar">
+        <div class="badge">内部分享 / AI 编程实践</div>
+        <div>01</div>
+      </div>
+      <div class="content hero">
+        <div class="title-block">
+          <div class="subtitle">Cursor 场景下的 AI 编程最佳实践</div>
+          <h1>把 AI 从“补全工具”升级为<br>可协作的研发搭档</h1>
+          <p class="lead">目标：帮助团队形成一套能稳定产出、可控风险、可复制推广的 AI 编程工作方式，而不是只停留在“偶尔让 AI 帮我写点代码”。</p>
+          <div class="pill-row">
+            <span class="pill">需求澄清</span>
+            <span class="pill">代码探索</span>
+            <span class="pill">实现与重构</span>
+            <span class="pill">测试与 Review</span>
+            <span class="pill">团队规范</span>
+          </div>
+        </div>
+        <div class="quote">
+          好的 AI 编程结果，通常不是来自“更会问一句话”，而是来自更好的上下文、拆解、约束与验证。
+        </div>
+      </div>
+      <div class="footer">
+        <div><strong>建议时长：</strong>30-40 分钟</div>
+        <div class="nav-hint">方向键 / 空格切换页面</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">为什么值得系统化使用</div>
+        <div>02</div>
+      </div>
+      <div class="content">
+        <h2>AI 编程的价值，不只是“写得更快”</h2>
+        <div class="grid-4">
+          <div class="metric">
+            <strong class="big-number">1</strong>
+            <p><strong>降低启动成本</strong><br>新任务、新语言、新模块更容易起步。</p>
+          </div>
+          <div class="metric">
+            <strong class="big-number">2</strong>
+            <p><strong>扩大个体能力边界</strong><br>一个人可以同时兼顾实现、测试、文档、脚本。</p>
+          </div>
+          <div class="metric">
+            <strong class="big-number">3</strong>
+            <p><strong>提升交付吞吐</strong><br>尤其适合样板代码、重构、批量修改、测试补齐。</p>
+          </div>
+          <div class="metric">
+            <strong class="big-number">4</strong>
+            <p><strong>倒逼工程规范</strong><br>上下文清晰、测试充分、结构良好的仓库更容易被 AI 利用。</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>核心判断</h3>
+          <p>AI 最适合解决“信息量大、模式重复、需要快速试错”的研发活动；最不适合“关键业务决策、隐式规则很多、验收标准不明确”的任务。</p>
+        </div>
+      </div>
+      <div class="footer">
+        <div>关键结论：AI 不是替代工程能力，而是放大工程能力</div>
+        <div>2 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">Cursor 的定位</div>
+        <div>03</div>
+      </div>
+      <div class="content">
+        <h2>在 Cursor 里，建议把 AI 当成 4 类角色使用</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>1. 探索员</h3>
+            <p>快速扫描代码库、定位入口、解释调用链、总结模块职责。</p>
+          </div>
+          <div class="card">
+            <h3>2. 实现助手</h3>
+            <p>按明确边界完成函数、组件、接口、迁移脚本、测试代码。</p>
+          </div>
+          <div class="card">
+            <h3>3. 评审员</h3>
+            <p>对 diff 做风险扫描，找潜在 bug、回归点、边界条件、缺失测试。</p>
+          </div>
+          <div class="card">
+            <h3>4. 教练</h3>
+            <p>解释陌生代码、给出重构思路、比较方案、补齐知识盲区。</p>
+          </div>
+        </div>
+        <div class="quote">
+          最低效的方式：把 Cursor 当“更高级的自动补全”。<br>
+          更高效的方式：让它参与需求理解、方案拆解、实现、验证和复盘的完整链路。
+        </div>
+      </div>
+      <div class="footer">
+        <div>角色切换越清晰，产出越稳定</div>
+        <div>3 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">最佳实践总原则</div>
+        <div>04</div>
+      </div>
+      <div class="content">
+        <h2>先给原则，再谈技巧</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>原则 1：先对齐任务，再开始写</h3>
+            <p>不要直接说“帮我实现一下”，先明确目标、范围、约束、验收标准。</p>
+          </div>
+          <div class="card">
+            <h3>原则 2：优先给上下文，不要只给指令</h3>
+            <p>AI 输出质量很大程度取决于它是否看到了正确的文件、接口、报错和已有模式。</p>
+          </div>
+          <div class="card">
+            <h3>原则 3：任务拆小，快速验证</h3>
+            <p>一次只解决一个问题，减少大段自动生成后难以审查和回滚的风险。</p>
+          </div>
+          <div class="card">
+            <h3>原则 4：让 AI 解释自己的修改</h3>
+            <p>要求列出改动点、影响面、未覆盖风险，帮助人做最终判断。</p>
+          </div>
+          <div class="card">
+            <h3>原则 5：人负责验收和决策</h3>
+            <p>AI 可以高效生成，但不应该拥有上线决策权和业务解释权。</p>
+          </div>
+          <div class="card">
+            <h3>原则 6：把高质量提示词沉淀成团队资产</h3>
+            <p>最佳实践一旦可复用，就要模板化、规范化、流程化。</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <div>经验：AI 编程的上限，常常取决于人的任务设计能力</div>
+        <div>4 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">工作流 1</div>
+        <div>05</div>
+      </div>
+      <div class="content">
+        <h2>从模糊需求到可执行任务</h2>
+        <div class="flow">
+          <div class="timeline-step">
+            <strong>目标</strong>
+            <p>我要解决什么业务问题？</p>
+          </div>
+          <div class="timeline-step">
+            <strong>范围</strong>
+            <p>改哪些模块？不改哪些模块？</p>
+          </div>
+          <div class="timeline-step">
+            <strong>约束</strong>
+            <p>语言、框架、接口、兼容性、性能要求。</p>
+          </div>
+          <div class="timeline-step">
+            <strong>验收</strong>
+            <p>测试、日志、页面、接口返回应达到什么标准？</p>
+          </div>
+          <div class="timeline-step">
+            <strong>行动</strong>
+            <p>先分析，再提方案，再实现。</p>
+          </div>
+        </div>
+        <div class="prompt-box">建议先这样问 Cursor：
+
+“你先不要写代码。请基于当前仓库帮我完成 3 件事：
+1. 找出和这个需求最相关的文件与调用链；
+2. 给出最小改动方案；
+3. 列出可能影响的测试点和风险点。
+
+需求目标：
+- ...
+改动范围：
+- ...
+不要改动：
+- ...
+验收标准：
+- ...”</div>
+      </div>
+      <div class="footer">
+        <div>先分析再实现，能显著减少“写出来但不对”的返工</div>
+        <div>5 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">工作流 2</div>
+        <div>06</div>
+      </div>
+      <div class="content">
+        <h2>优先让 AI “读代码”，再让 AI “写代码”</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>推荐做法</h3>
+            <ul class="checklist">
+              <li>先让 Cursor 总结模块职责、入口函数、关键数据流。</li>
+              <li>要求引用具体文件和函数，而不是泛泛解释。</li>
+              <li>让 AI 用“现有代码风格”完成实现，而不是凭空创造新模式。</li>
+              <li>要求它说明为什么选这个修改点而不是别处。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>常见问题</h3>
+            <ul class="danger">
+              <li>没有给上下文，AI 按通用经验瞎猜。</li>
+              <li>一次贴太多无关文件，核心信息被稀释。</li>
+              <li>没要求它引用证据，回答听起来合理但脱离仓库实际。</li>
+              <li>直接让它重构大片代码，最后人无法 Review。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="quote">
+          一个非常有效的习惯：先问“仓库里现在是怎么做的”，再问“这次我应该怎么改”。
+        </div>
+      </div>
+      <div class="footer">
+        <div>正确上下文 &gt; 华丽提示词</div>
+        <div>6 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">工作流 3</div>
+        <div>07</div>
+      </div>
+      <div class="content">
+        <h2>用“小步快跑”替代“一次生成一大坨”</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>步骤 A</h3>
+            <p>先让 AI 只做方案和影响分析，确认改动边界。</p>
+          </div>
+          <div class="card">
+            <h3>步骤 B</h3>
+            <p>一次只改一个文件或一个子问题，方便人类 Review。</p>
+          </div>
+          <div class="card">
+            <h3>步骤 C</h3>
+            <p>每轮修改后立刻跑测试、lint、编译或关键路径验证。</p>
+          </div>
+        </div>
+        <div class="table-like">
+          <div class="row">
+            <div class="cell head">场景</div>
+            <div class="cell head">不推荐</div>
+            <div class="cell head">更推荐</div>
+          </div>
+          <div class="row">
+            <div class="cell">功能开发</div>
+            <div class="cell">“把整个需求都实现了”</div>
+            <div class="cell">“先补接口层，再补 service，再补测试”</div>
+          </div>
+          <div class="row">
+            <div class="cell">Bug 修复</div>
+            <div class="cell">“帮我修掉这个问题”</div>
+            <div class="cell">“先定位根因，再给最小修复 diff”</div>
+          </div>
+          <div class="row">
+            <div class="cell">重构</div>
+            <div class="cell">一次性批量重写</div>
+            <div class="cell">“分批迁移，每批可回滚、有测试覆盖”</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <div>AI 越强，越要控制改动粒度</div>
+        <div>7 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">工作流 4</div>
+        <div>08</div>
+      </div>
+      <div class="content">
+        <h2>让 AI 先写“验证方式”，再写实现</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>为什么有效</h3>
+            <p>AI 容易在实现阶段“看起来很对”，但测试能快速暴露误解。先明确断言、边界输入、异常场景，能显著提升一次通过率。</p>
+          </div>
+          <div class="card">
+            <h3>适用任务</h3>
+            <p>接口改造、复杂逻辑修复、数据处理函数、状态管理、权限规则、兼容性回归。</p>
+          </div>
+        </div>
+        <div class="prompt-box">可复用提示词：
+
+“请先不要修改生产代码，先基于当前实现补充或设计测试用例：
+- 正常路径
+- 边界条件
+- 异常分支
+- 回归风险
+
+然后告诉我：
+1. 现有代码为什么会失败；
+2. 最小修复方案是什么；
+3. 修复后需要补哪些测试。”</div>
+      </div>
+      <div class="footer">
+        <div>如果你不知道怎么验证，通常也不该让 AI 直接开始写</div>
+        <div>8 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">Prompt 模板</div>
+        <div>09</div>
+      </div>
+      <div class="content">
+        <h2>3 个最常用、最值得团队复用的 Prompt 模板</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>模板 1：代码探索</h3>
+            <p>“请阅读相关文件，告诉我入口、调用链、关键数据结构、改动建议，并引用具体文件位置。”</p>
+          </div>
+          <div class="card">
+            <h3>模板 2：最小改动实现</h3>
+            <p>“基于现有风格完成最小改动，不额外引入新框架，修改后总结影响面并列出验证步骤。”</p>
+          </div>
+          <div class="card">
+            <h3>模板 3：Review / 风险扫描</h3>
+            <p>“请站在 reviewer 视角检查这次 diff，优先找 bug、回归风险、缺失测试，不要只总结改了什么。”</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>模板设计建议</h3>
+          <p>固定 5 个槽位：<strong>目标 / 上下文 / 约束 / 输出格式 / 验收标准</strong>。这样团队里每个人都能把 AI 用法标准化，不依赖“某个高手会问”。</p>
+        </div>
+      </div>
+      <div class="footer">
+        <div>提示词不是玄学，模板化后就是团队方法论</div>
+        <div>9 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">上下文管理</div>
+        <div>10</div>
+      </div>
+      <div class="content">
+        <h2>在 Cursor 中，真正拉开差距的是上下文管理</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>高质量上下文应该包含</h3>
+            <ul class="checklist">
+              <li>当前目标和背景：为什么要改。</li>
+              <li>相关文件与错误信息：而不是只贴结论。</li>
+              <li>已有实现模式：类似模块、历史方案、命名规范。</li>
+              <li>边界和禁区：哪些地方不能改、不能破坏什么。</li>
+              <li>验证标准：测试、运行、页面、日志、性能。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>实操建议</h3>
+            <ul class="checklist">
+              <li>长对话中及时“重置上下文”，避免历史噪音污染当前任务。</li>
+              <li>复杂任务把分析、实现、Review 分成多个对话阶段。</li>
+              <li>发现 AI 偏题时，不要继续追问，先补上下文或缩小任务。</li>
+              <li>对关键结论要求引用代码证据和文件位置。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <div>一个经验：越复杂的需求，越要像写需求文档一样写给 AI</div>
+        <div>10 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">Review 与风险控制</div>
+        <div>11</div>
+      </div>
+      <div class="content">
+        <h2>把 AI 用在 Review，通常是投入产出比最高的环节</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>检查 bug</h3>
+            <p>空指针、未处理异常、并发问题、状态遗漏、边界条件漏掉。</p>
+          </div>
+          <div class="card">
+            <h3>检查回归</h3>
+            <p>公共接口是否变更、老逻辑是否被破坏、兼容性是否受影响。</p>
+          </div>
+          <div class="card">
+            <h3>检查测试</h3>
+            <p>关键路径是否覆盖、失败场景是否覆盖、断言是否足够严格。</p>
+          </div>
+        </div>
+        <div class="prompt-box">Review 提示词建议：
+
+“请用 code review 的方式审查这次改动：
+- 优先指出可能的 bug、风险和行为变化；
+- 标注影响文件或逻辑点；
+- 判断是否缺失测试；
+- 如果没有明显问题，也请说明仍然存在的测试盲区。
+
+不要只复述改动内容。”</div>
+      </div>
+      <div class="footer">
+        <div>优秀团队不是“少写错”，而是“更快发现错”</div>
+        <div>11 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">团队治理</div>
+        <div>12</div>
+      </div>
+      <div class="content">
+        <h2>如果要规模化落地，需要建立 4 个团队机制</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>机制 1：提示词模板库</h3>
+            <p>沉淀探索、实现、测试、Review、文档等常用模板。</p>
+          </div>
+          <div class="card">
+            <h3>机制 2：AI 使用边界</h3>
+            <p>明确哪些代码、数据、密钥、客户信息不能放进上下文。</p>
+          </div>
+          <div class="card">
+            <h3>机制 3：验收标准</h3>
+            <p>AI 生成代码必须过测试、lint、编译、Review，不得跳过工程门禁。</p>
+          </div>
+          <div class="card">
+            <h3>机制 4：案例复盘</h3>
+            <p>定期复盘高价值用例和失败案例，让方法论持续进化。</p>
+          </div>
+        </div>
+        <div class="quote">
+          团队采用 AI 编程，不是“装个工具”就结束了，而是一次研发工作流升级。
+        </div>
+      </div>
+      <div class="footer">
+        <div>规模化效果 = 工具能力 × 工程规范 × 团队习惯</div>
+        <div>12 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">常见误区</div>
+        <div>13</div>
+      </div>
+      <div class="content">
+        <h2>最容易让团队“用了 AI 但没得到收益”的 6 个误区</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>误区 1</h3>
+            <p>把 AI 当搜索引擎，问泛问题，不给仓库上下文。</p>
+          </div>
+          <div class="card">
+            <h3>误区 2</h3>
+            <p>一次性让 AI 改太多，导致 Review 和回滚成本过高。</p>
+          </div>
+          <div class="card">
+            <h3>误区 3</h3>
+            <p>只看“它能不能生成”，不看“生成后是否可验证、可维护”。</p>
+          </div>
+          <div class="card">
+            <h3>误区 4</h3>
+            <p>把 AI 输出直接当事实，不要求引用仓库证据。</p>
+          </div>
+          <div class="card">
+            <h3>误区 5</h3>
+            <p>没有沉淀复用模板，每个人都从零摸索。</p>
+          </div>
+          <div class="card">
+            <h3>误区 6</h3>
+            <p>忽略安全边界，把不该暴露的信息交给 AI 上下文。</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="warning">结论：AI 编程失败，通常不是因为模型不够强，而是流程设计不到位</div>
+        <div>13 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">建议现场 Demo</div>
+        <div>14</div>
+      </div>
+      <div class="content">
+        <h2>分享时，推荐演示 1 个完整闭环</h2>
+        <div class="flow">
+          <div class="timeline-step">
+            <strong>Step 1</strong>
+            <p>给出一个真实需求或 bug。</p>
+          </div>
+          <div class="timeline-step">
+            <strong>Step 2</strong>
+            <p>先让 Cursor 分析代码与定位影响点。</p>
+          </div>
+          <div class="timeline-step">
+            <strong>Step 3</strong>
+            <p>再让它提出最小改动方案。</p>
+          </div>
+          <div class="timeline-step">
+            <strong>Step 4</strong>
+            <p>分步实现，并跑验证命令。</p>
+          </div>
+          <div class="timeline-step">
+            <strong>Step 5</strong>
+            <p>最后让 AI 站在 reviewer 视角复查。</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>演示效果最好的点</h3>
+          <p>不要演示“AI 一次写了很多代码”，而要演示“AI 如何帮助你更快做出正确决策、减少试错、补齐验证”。这才最容易让团队认同。</p>
+        </div>
+      </div>
+      <div class="footer">
+        <div>最佳 demo：一个真实小任务胜过十个空泛技巧</div>
+        <div>14 / 15</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topbar">
+        <div class="badge">落地建议</div>
+        <div>15</div>
+      </div>
+      <div class="content">
+        <h2>结论与落地建议</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h3>今天希望带走的 3 个观点</h3>
+            <ol>
+              <li>AI 编程的关键不是“写得快”，而是“更快得到正确结果”。</li>
+              <li>Cursor 最好的用法，是把 AI 放进完整研发链路，而不是只做补全。</li>
+              <li>团队收益来自模板、流程、验证和复盘，而不是个人技巧。</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3>建议下一步行动</h3>
+            <ol>
+              <li>挑 2-3 个真实场景做试点：Bug 修复、测试补齐、批量重构。</li>
+              <li>沉淀一套团队 Prompt 模板与安全边界。</li>
+              <li>每周复盘“最好用”和“最翻车”的案例。</li>
+            </ol>
+          </div>
+        </div>
+        <div class="quote">
+          Q&amp;A：我们不是在学习一个新工具，<br>而是在学习一种新的研发协作方式。
+        </div>
+      </div>
+      <div class="footer">
+        <div><strong>谢谢</strong> / 可按公司案例继续替换内容</div>
+        <div>15 / 15</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="progress" id="progress"></div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const progress = document.getElementById("progress");
+    let current = 0;
+
+    function render(index) {
+      current = Math.max(0, Math.min(index, slides.length - 1));
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === current);
+      });
+      const ratio = ((current + 1) / slides.length) * 100;
+      progress.style.width = ratio + "%";
+      document.title = "Cursor AI 编程最佳实践分享 - " + (current + 1) + "/" + slides.length;
+    }
+
+    function next() {
+      render(current + 1);
+    }
+
+    function prev() {
+      render(current - 1);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(event.key)) {
+        event.preventDefault();
+        next();
+      }
+      if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        prev();
+      }
+      if (event.key === "Home") {
+        render(0);
+      }
+      if (event.key === "End") {
+        render(slides.length - 1);
+      }
+    });
+
+    window.addEventListener("click", () => next());
+    render(0);
+  </script>
+</body>
+</html>
