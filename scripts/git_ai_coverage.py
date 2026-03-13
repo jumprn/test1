@@ -180,13 +180,42 @@ def aggregate_stats(stats_list: list[dict[str, Any]]) -> dict[str, Any]:
     return annotate_summary(summary)
 
 
-def parse_git_log(repo: Path, revision: str, no_merges: bool) -> list[tuple[str, Contributor]]:
+def append_time_filters(cmd: list[str], *, since: str | None, until: str | None) -> None:
+    """Append git-log compatible time filters."""
+
+    if since:
+        cmd.extend(["--since", since])
+    if until:
+        cmd.extend(["--until", until])
+
+
+def format_time_filter_label(*, since: str | None, until: str | None) -> str:
+    """Return a human-readable time range label."""
+
+    if since and until:
+        return f"{since} ~ {until}"
+    if since:
+        return f">= {since}"
+    if until:
+        return f"<= {until}"
+    return "全部时间"
+
+
+def parse_git_log(
+    repo: Path,
+    revision: str,
+    no_merges: bool,
+    *,
+    since: str | None,
+    until: str | None,
+) -> list[tuple[str, Contributor]]:
     """Return commit -> contributor pairs from git log using mailmap."""
 
     format_spec = "%H%x1f%aN%x1f%aE%x1e"
     cmd = ["git", "log", "--use-mailmap", f"--format={format_spec}"]
     if no_merges:
         cmd.append("--no-merges")
+    append_time_filters(cmd, since=since, until=until)
     cmd.append(revision)
 
     output = run_command(cmd, cwd=repo).stdout
@@ -322,6 +351,7 @@ def render_local_report(
     *,
     repo: Path,
     revision: str,
+    time_range: str,
     contributor: Contributor,
     summary: dict[str, Any],
     errors: dict[str, str],
@@ -333,6 +363,7 @@ def render_local_report(
         "=" * 32,
         f"仓库路径: {repo}",
         f"统计范围: {revision}",
+        f"时间范围: {time_range}",
         f"统计对象: {contributor.label}",
         f"提交数: {summary['commits']}",
         f"提交入库总行数: {format_number(summary['committed_additions'])}",
@@ -364,6 +395,7 @@ def render_remote_report(
     *,
     remote_url: str,
     revision: str,
+    time_range: str,
     contributors: list[dict[str, Any]],
     errors: dict[str, str],
 ) -> str:
@@ -374,6 +406,7 @@ def render_remote_report(
         "=" * 32,
         f"远程仓库: {remote_url}",
         f"统计范围: {revision}",
+        f"时间范围: {time_range}",
         "",
         "排序规则: 按提交入库总行数(committed_additions)降序",
         "",
@@ -473,10 +506,12 @@ def build_contributor_commit_map(
     revision: str,
     *,
     no_merges: bool,
+    since: str | None,
+    until: str | None,
 ) -> dict[Contributor, list[str]]:
     """Return contributor -> commit list within the given revision."""
 
-    pairs = parse_git_log(repo, revision, no_merges)
+    pairs = parse_git_log(repo, revision, no_merges, since=since, until=until)
     mapping: dict[Contributor, list[str]] = {}
     for commit, contributor in pairs:
         mapping.setdefault(contributor, []).append(commit)
@@ -525,10 +560,17 @@ def handle_local(args: argparse.Namespace) -> int:
 
     repo = Path(args.repo).expanduser().resolve()
     ensure_git_repository(repo)
+    time_range = format_time_filter_label(since=args.since, until=args.until)
 
     author_name = args.author_name or git_config_get(repo, "user.name")
     author_email = args.author_email or git_config_get(repo, "user.email")
-    commit_map = build_contributor_commit_map(repo, args.revision, no_merges=args.no_merges)
+    commit_map = build_contributor_commit_map(
+        repo,
+        args.revision,
+        no_merges=args.no_merges,
+        since=args.since,
+        until=args.until,
+    )
     target_contributor = select_local_contributor(
         list(commit_map.keys()),
         author_name=author_name,
@@ -551,6 +593,11 @@ def handle_local(args: argparse.Namespace) -> int:
         "mode": "local",
         "repo": str(repo),
         "revision": args.revision,
+        "time_filter": {
+            "since": args.since,
+            "until": args.until,
+            "label": time_range,
+        },
         "contributor": {
             "name": target_contributor.name,
             "email": target_contributor.email,
@@ -568,6 +615,7 @@ def handle_local(args: argparse.Namespace) -> int:
         report = render_local_report(
             repo=repo,
             revision=args.revision,
+            time_range=time_range,
             contributor=target_contributor,
             summary=summary,
             errors=errors,
@@ -589,7 +637,14 @@ def handle_remote_all(args: argparse.Namespace) -> int:
         clone_dir=args.clone_dir,
     )
     try:
-        commit_map = build_contributor_commit_map(repo, args.revision, no_merges=args.no_merges)
+        time_range = format_time_filter_label(since=args.since, until=args.until)
+        commit_map = build_contributor_commit_map(
+            repo,
+            args.revision,
+            no_merges=args.no_merges,
+            since=args.since,
+            until=args.until,
+        )
         all_commits = [commit for commits in commit_map.values() for commit in commits]
 
         if not all_commits:
@@ -633,6 +688,11 @@ def handle_remote_all(args: argparse.Namespace) -> int:
             "remote_url": args.remote_url,
             "local_repo": str(repo),
             "revision": args.revision,
+            "time_filter": {
+                "since": args.since,
+                "until": args.until,
+                "label": time_range,
+            },
             "overall_summary": serialize_summary(overall_summary),
             "contributors": contributors_payload,
             "successful_commit_count": len(stats_by_commit),
@@ -645,6 +705,7 @@ def handle_remote_all(args: argparse.Namespace) -> int:
             report = render_remote_report(
                 remote_url=args.remote_url,
                 revision=args.revision,
+                time_range=time_range,
                 contributors=contributors_payload,
                 errors=errors,
             )
@@ -668,8 +729,10 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=(
             "示例:\n"
             "  python3 scripts/git_ai_coverage.py local\n"
+            "  python3 scripts/git_ai_coverage.py local --since 2026-03-01 --until 2026-03-31\n"
             "  python3 scripts/git_ai_coverage.py local --author-email you@example.com --json\n"
             "  python3 scripts/git_ai_coverage.py remote-all --remote-url https://github.com/org/repo.git\n"
+            "  python3 scripts/git_ai_coverage.py remote-all --remote-url https://github.com/org/repo.git --since 2026-03-01 --until 2026-03-31\n"
             "  python3 scripts/git_ai_coverage.py remote-all --remote-url git@github.com:org/repo.git --clone-dir .cache/repo --json-output result.json"
         ),
     )
@@ -680,6 +743,14 @@ def build_parser() -> argparse.ArgumentParser:
             "--revision",
             default="HEAD",
             help="统计范围，默认 HEAD；也支持 main、v1.0.0、abc123..def456 等 git revision 语法。",
+        )
+        subparser.add_argument(
+            "--since",
+            help="仅统计该时间之后（含）的提交，使用 Git 支持的时间格式，如 2026-03-01、'2026-03-01 00:00:00'、2.weeks.ago。",
+        )
+        subparser.add_argument(
+            "--until",
+            help="仅统计该时间之前（含）的提交，使用 Git 支持的时间格式，如 2026-03-31、'2026-03-31 23:59:59'、yesterday。",
         )
         subparser.add_argument(
             "--workers",

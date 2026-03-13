@@ -51,6 +51,14 @@ python3 scripts/git_ai_coverage.py local
 python3 scripts/git_ai_coverage.py local --author-email you@example.com
 ```
 
+如果你要统计指定时间段内我个人的 AI 覆盖率：
+
+```bash
+python3 scripts/git_ai_coverage.py local \
+  --since 2026-03-01 \
+  --until 2026-03-31
+```
+
 如果要输出 JSON：
 
 ```bash
@@ -86,6 +94,15 @@ python3 scripts/git_ai_coverage.py remote-all \
 python3 scripts/git_ai_coverage.py remote-all \
   --remote-url https://github.com/your-org/your-repo.git \
   --branch master
+```
+
+如果你要统计指定时间段内所有贡献者的 AI 覆盖率：
+
+```bash
+python3 scripts/git_ai_coverage.py remote-all \
+  --remote-url https://github.com/your-org/your-repo.git \
+  --since 2026-03-01 \
+  --until 2026-03-31
 ```
 
 如果要导出 JSON：
@@ -135,6 +152,25 @@ AI 覆盖率 = ai_additions / (ai_additions + human_additions) * 100%
 - 范围：`abc123..def456`
 
 ```bash
+--since <time>
+```
+
+仅统计该时间之后（含）的提交。
+
+```bash
+--until <time>
+```
+
+仅统计该时间之前（含）的提交。
+
+时间参数直接使用 Git 的日期解析能力，常见写法包括：
+
+- `2026-03-01`
+- `2026-03-01 00:00:00`
+- `yesterday`
+- `2.weeks.ago`
+
+```bash
 --workers <N>
 ```
 
@@ -167,6 +203,7 @@ Git AI 本地个人覆盖率统计
 ================================
 仓库路径: /path/to/repo
 统计范围: HEAD
+时间范围: 2026-03-01 ~ 2026-03-31
 统计对象: Alice <alice@example.com>
 提交数: 12
 提交入库总行数: 1830
@@ -183,6 +220,14 @@ AI 接受率(ai_accepted / ai_additions): 76.92%
 ### 2. 所有贡献者统计
 
 ```text
+Git AI 全量贡献者覆盖率统计
+================================
+远程仓库: https://github.com/your-org/your-repo.git
+统计范围: HEAD
+时间范围: 2026-03-01 ~ 2026-03-31
+
+排序规则: 按提交入库总行数(committed_additions)降序
+
 贡献者                                     提交数       总行数       AI行数      AI覆盖率    直接接受AI
 ----------------------------------------------------------------------------------------------------
 Alice <alice@example.com>                    12        1830        910       49.73%       38.25%
@@ -192,7 +237,7 @@ Carol <carol@example.com>                     5         420          0        0.
 
 ## 七、注意事项
 
-1. 远程仓库模式统计的是 **git revision 范围内的提交作者**，默认是 `HEAD` 所在历史。
+1. 远程仓库模式统计的是 **git revision 范围内、且满足 `--since/--until` 条件的提交作者**，默认是 `HEAD` 所在历史。
 2. 作者归并使用 `git log --use-mailmap`，因此仓库如果配置了 `.mailmap`，别名邮箱会自动折叠。
 3. 如果某些 commit 没有 git-ai 元数据，脚本会在结果里给出失败列表，不会直接中断整个统计流程。
 4. 仓库很大时，逐 commit 调用 `git-ai stats` 可能需要较长时间，建议使用 `--workers` 和 `--clone-dir`。
