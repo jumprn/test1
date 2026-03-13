@@ -170,6 +170,11 @@ AI 覆盖率 = ai_additions / (ai_additions + human_additions) * 100%
 - `yesterday`
 - `2.weeks.ago`
 
+其中如果传入纯日期（如 `2026-03-01`），脚本会自动按本地时区扩展为整天范围：
+
+- `--since 2026-03-01` -> 当天 `00:00:00`
+- `--until 2026-03-31` -> 当天 `23:59:59`
+
 ```bash
 --workers <N>
 ```

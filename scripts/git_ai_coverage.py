@@ -14,12 +14,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -34,6 +36,8 @@ NUMERIC_FIELDS = (
     "total_ai_deletions",
     "time_waiting_for_ai",
 )
+
+DATE_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 class ScriptError(RuntimeError):
@@ -184,9 +188,32 @@ def append_time_filters(cmd: list[str], *, since: str | None, until: str | None)
     """Append git-log compatible time filters."""
 
     if since:
-        cmd.extend(["--since", since])
+        cmd.extend(["--since", normalize_git_time_input(since, is_until=False)])
     if until:
-        cmd.extend(["--until", until])
+        cmd.extend(["--until", normalize_git_time_input(until, is_until=True)])
+
+
+def local_timezone_suffix() -> str:
+    """Return the local timezone offset in ISO-8601 form."""
+
+    offset = datetime.now().astimezone().strftime("%z")
+    return f"{offset[:3]}:{offset[3:]}"
+
+
+def normalize_git_time_input(value: str, *, is_until: bool) -> str:
+    """Normalize date-only inputs so common range queries match full days.
+
+    Git's natural date parser can be inconsistent for bare YYYY-MM-DD values across
+    environments. When a user passes a date-only string, expand it to the full day
+    in the local timezone so common reporting commands behave predictably.
+    """
+
+    normalized = value.strip()
+    if not DATE_ONLY_RE.fullmatch(normalized):
+        return normalized
+
+    boundary = "23:59:59" if is_until else "00:00:00"
+    return f"{normalized}T{boundary}{local_timezone_suffix()}"
 
 
 def format_time_filter_label(*, since: str | None, until: str | None) -> str:
