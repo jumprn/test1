@@ -598,6 +598,8 @@ def handle_local(args: argparse.Namespace) -> int:
         since=args.since,
         until=args.until,
     )
+    if not commit_map:
+        raise ScriptError(f"在范围 {args.revision} 和时间范围 {time_range} 内未找到任何提交。")
     target_contributor = select_local_contributor(
         list(commit_map.keys()),
         author_name=author_name,
